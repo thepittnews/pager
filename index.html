@@ -11,7 +11,7 @@
   <body>
     <div class="container center">
       <div class="jumbotron">
-        <h3>10-7</h3>
+        <h3 id="edition">10-7</h3>
 
         <div class="form-group">
           <input class="form-control" type="text" placeholder="90">
@@ -23,7 +23,10 @@
         </div>
       </div>
 
-      <button type="button" class="btn btn-secondary">Change date</button>
+      <button type="button" class="btn btn-secondary" id="btn-date">Change date</button>
     </div>
+
+    <script>window.$ = window.jQuery = require('jquery');</script>
+    <script>require("./renderer");</script>
   </body>
 </html>
