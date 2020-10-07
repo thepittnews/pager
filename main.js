@@ -1,4 +1,8 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs');
+const request = require('request-promise');
+
+const config = require('./config');
 
 let win;
 
@@ -39,4 +43,23 @@ app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (win === null) createWindow();
+});
+
+// Send to Slack
+ipcMain.on('send-slack', (event, { filePath, pageNumber }) => {
+  const file = fs.readdirSync(`${filePath}/Sent/`)
+    .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
+  const fullFilePath = `${filePath}/Sent/${file}`;
+
+  request({
+    method: 'POST',
+    url: 'https://slack.com/api/files.upload',
+    formData: Object.assign(
+      {},
+      { file: fs.createReadStream(fullFilePath) },
+      config.slack_settings)
+  }).then((res) => {
+    const parsedRes = JSON.parse(res);
+    event.sender.send('send-slack-res', { pageNumber, success: parsedRes.ok });
+  });
 });
