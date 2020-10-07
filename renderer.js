@@ -18,6 +18,32 @@ $(document).ready(() => {
     });
   });
 
+  $('button#btn-pg').on('click', (e) => {
+    e.preventDefault();
+
+    if ($('input#pageNumber').val().length == 0) {
+      alert('Need to enter a page number');
+      return e.preventDefault();
+    }
+
+    const pageNumber = $('input#pageNumber').val();
+
+    if (!confirm(`Send page ${pageNumber}`)) return;
+
+    ipcRenderer.on('send-pg-res', (event, { pageNumber, success }) => {
+      alert(`${success ? 'SUCCESS' : 'FAIL'}: ${pageNumber} to PG`);
+
+      if (success) {
+        $('input#pageNumber').val('');
+      }
+    });
+
+    ipcRenderer.send('send-pg', {
+      filePath: window.pager.filePath,
+      pageNumber
+    });
+  });
+
   $('button#btn-slack').on('click', (e) => {
     e.preventDefault();
 

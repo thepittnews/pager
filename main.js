@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const request = require('request-promise');
+const Client = require('ftp');
 
 const config = require('./config');
 
@@ -43,6 +44,28 @@ app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (win === null) createWindow();
+});
+
+// Send to PG
+ipcMain.on('send-pg', (event, { filePath, pageNumber }) => {
+  const file = fs.readdirSync(`${filePath}/Sent/`)
+    .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
+  const fullFilePath = `${filePath}/Sent/${file}`;
+
+  const onFTPError = () => event.sender.send('send-pg-res', { pageNumber, success: false });
+  const onFTPSuccess = () => event.sender.send('send-pg-res', { pageNumber, success: true });
+
+  const conn = new Client();
+  conn.on('ready', () => {
+    conn.put(fullFilePath, file, (err) => {
+      if (err) return onFTPError();
+
+      conn.end();
+      onFTPSuccess();
+    });
+  });
+
+  conn.connect(config.ftp_settings);
 });
 
 // Send to Slack
