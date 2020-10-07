@@ -2,7 +2,7 @@ const { ipcRenderer, remote } = require('electron');
 const { dialog } = remote;
 
 window.pager = {
-  filePath: ''
+  sentDirectory: ''
 };
 
 $(document).ready(() => {
@@ -13,7 +13,7 @@ $(document).ready(() => {
       properties: ['openDirectory']
     })
     .then(({ filePaths }) => {
-      window.pager.filePath = filePaths[0];
+      window.pager.sentDirectory = `${filePaths[0]}/Sent`;
       $('h3#edition').text(filePaths[0].split("/").slice(-1)[0]);
     });
   });
@@ -25,7 +25,7 @@ $(document).ready(() => {
       alert(`${success ? 'SUCCESS' : 'FAIL'}: Merge pages`);
     });
 
-    ipcRenderer.send('merge-pages', { filePath: window.pager.filePath });
+    ipcRenderer.send('merge-pages', { sentDirectory: window.pager.sentDirectory });
   });
 
   $('button#btn-pg').on('click', (e) => {
@@ -49,8 +49,8 @@ $(document).ready(() => {
     });
 
     ipcRenderer.send('send-pg', {
-      filePath: window.pager.filePath,
-      pageNumber
+      pageNumber,
+      sentDirectory: window.pager.sentDirectory,
     });
   });
 
@@ -71,8 +71,8 @@ $(document).ready(() => {
     });
 
     ipcRenderer.send('send-slack', {
-      filePath: window.pager.filePath,
-      pageNumber: $('input#pageNumber').val()
+      pageNumber: $('input#pageNumber').val(),
+      sentDirectory: window.pager.sentDirectory
     });
   });
 });

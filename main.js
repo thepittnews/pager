@@ -48,13 +48,13 @@ app.on('activate', () => {
 });
 
 // Merge pages
-ipcMain.on('merge-pages', (event, { filePath, pageNumber }) => {
-  const files = fs.readdirSync(`${filePath}/Sent/`)
+ipcMain.on('merge-pages', (event, { sentDirectory, pageNumber }) => {
+  const files = fs.readdirSync(sentDirectory)
     .sort((a, b) => {
       return a.split('.').slice(-2, -1)[0] - b.split('.').slice(-2, -1)[0];
     })
-    .map((filename) => `${filePath}/Sent/${filename}`);
-  const jointFilename = `${files[0].split('.').slice(0, 3).join('.')}.pdf`;
+    .map((filename) => `'${sentDirectory}/${filename}'`);
+  const jointFilename = `${files[0].split('.').slice(0, 3).join('.')}.pdf'`;
 
   const onError = () => event.sender.send('merge-pages-res', { success: false });
 
@@ -68,17 +68,17 @@ ipcMain.on('merge-pages', (event, { filePath, pageNumber }) => {
 });
 
 // Send to PG
-ipcMain.on('send-pg', (event, { filePath, pageNumber }) => {
-  const file = fs.readdirSync(`${filePath}/Sent/`)
+ipcMain.on('send-pg', (event, { sentDirectory, pageNumber }) => {
+  const filename = fs.readdirSync(sentDirectory)
     .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
-  const fullFilePath = `${filePath}/Sent/${file}`;
+  const fullFilePath = `${sentDirectory}/${filename}`;
 
   const onFTPError = () => event.sender.send('send-pg-res', { pageNumber, success: false });
   const onFTPSuccess = () => event.sender.send('send-pg-res', { pageNumber, success: true });
 
   const conn = new Client();
   conn.on('ready', () => {
-    conn.put(fullFilePath, file, (err) => {
+    conn.put(fullFilePath, filename, (err) => {
       if (err) return onFTPError();
 
       conn.end();
@@ -90,10 +90,10 @@ ipcMain.on('send-pg', (event, { filePath, pageNumber }) => {
 });
 
 // Send to Slack
-ipcMain.on('send-slack', (event, { filePath, pageNumber }) => {
-  const file = fs.readdirSync(`${filePath}/Sent/`)
+ipcMain.on('send-slack', (event, { sentDirectory, pageNumber }) => {
+  const filename = fs.readdirSync(sentDirectory)
     .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
-  const fullFilePath = `${filePath}/Sent/${file}`;
+  const fullFilePath = `${sentDirectory}/${filename}`;
 
   request({
     method: 'POST',
