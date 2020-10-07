@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const request = require('request-promise');
 const Client = require('ftp');
+const { execSync } = require('child_process');
 
 const config = require('./config');
 
@@ -10,7 +11,7 @@ let win;
 const createWindow = () => {
   win = new BrowserWindow({
     width: 200,
-    height: 320,
+    height: 350,
     webPreferences: {
       enableRemoteModule: true,
       nodeIntegration: true
@@ -44,6 +45,26 @@ app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (win === null) createWindow();
+});
+
+// Merge pages
+ipcMain.on('merge-pages', (event, { filePath, pageNumber }) => {
+  const files = fs.readdirSync(`${filePath}/Sent/`)
+    .sort((a, b) => {
+      return a.split('.').slice(-2, -1)[0] - b.split('.').slice(-2, -1)[0];
+    })
+    .map((filename) => `${filePath}/Sent/${filename}`);
+  const jointFilename = `${files[0].split('.').slice(0, 3).join('.')}.pdf`;
+
+  const onError = () => event.sender.send('merge-pages-res', { success: false });
+
+  try {
+    execSync(`pdftk ${files.join(' ')} cat output ${jointFilename}`, { env: { PATH: '/usr/local/bin/:/usr/bin/' } }).toString();
+  } catch (e) {
+    onError(e);
+  }
+
+  event.sender.send('merge-pages-res', { success: true });
 });
 
 // Send to PG

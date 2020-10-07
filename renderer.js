@@ -18,6 +18,16 @@ $(document).ready(() => {
     });
   });
 
+  $('button#btn-merge').on('click', (e) => {
+    e.preventDefault();
+
+    ipcRenderer.on('merge-pages-res', (event, { success }) => {
+      alert(`${success ? 'SUCCESS' : 'FAIL'}: Merge pages`);
+    });
+
+    ipcRenderer.send('merge-pages', { filePath: window.pager.filePath });
+  });
+
   $('button#btn-pg').on('click', (e) => {
     e.preventDefault();
 
