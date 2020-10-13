@@ -48,7 +48,7 @@ app.on('activate', () => {
 });
 
 // Merge pages
-ipcMain.on('merge-pages', (event, { sentDirectory, pageNumber }) => {
+ipcMain.on('merge-pages', (event, { pageNumber, sentDirectory }) => {
   const files = fs.readdirSync(sentDirectory)
     .sort((a, b) => {
       return a.split('.').slice(-2, -1)[0] - b.split('.').slice(-2, -1)[0];
@@ -67,34 +67,37 @@ ipcMain.on('merge-pages', (event, { sentDirectory, pageNumber }) => {
   event.sender.send('merge-pages-res', { success: true });
 });
 
-// Send to PG
-ipcMain.on('send-pg', (event, { sentDirectory, pageNumber }) => {
+// Send page
+ipcMain.on('send-page', (event, { method, pageNumber, sentDirectory }) => {
   const filename = fs.readdirSync(sentDirectory)
     .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
   const fullFilePath = `${sentDirectory}/${filename}`;
 
-  const onFTPError = () => event.sender.send('send-pg-res', { pageNumber, success: false });
-  const onFTPSuccess = () => event.sender.send('send-pg-res', { pageNumber, success: true });
+  const fn = method === 'pg' ? sendPagePG : sendPageSlack;
+  fn(event, pageNumber, filename, fullFilePath);
+});
+
+// Send to PG
+const sendPagePG = (event, pageNumber, filename, fullFilePath) => {
+  const onFTPEvent = (success) => event.sender.send('send-page-res', { method: 'pg', pageNumber, success });
 
   const conn = new Client();
-  conn.on('ready', () => {
-    conn.put(fullFilePath, filename, (err) => {
-      if (err) return onFTPError();
+  const loadedSendFile = conn.put.bind(conn, fullFilePath, filename);
 
+  conn.on('ready', () => {
+    loadedSendFile((err) => {
+      if (err) onFTPEvent(false);
       conn.end();
-      onFTPSuccess();
     });
   });
 
+  conn.on('close', () => onFTPEvent(true));
+
   conn.connect(config.ftp_settings);
-});
+};
 
 // Send to Slack
-ipcMain.on('send-slack', (event, { sentDirectory, pageNumber }) => {
-  const filename = fs.readdirSync(sentDirectory)
-    .filter((f) => f.endsWith(`A.${pageNumber}.pdf`))[0];
-  const fullFilePath = `${sentDirectory}/${filename}`;
-
+const sendPageSlack = (event, pageNumber, _, fullFilePath) => {
   request({
     method: 'POST',
     url: 'https://slack.com/api/files.upload',
@@ -104,6 +107,6 @@ ipcMain.on('send-slack', (event, { sentDirectory, pageNumber }) => {
       config.slack_settings)
   }).then((res) => {
     const parsedRes = JSON.parse(res);
-    event.sender.send('send-slack-res', { pageNumber, success: parsedRes.ok });
+    event.sender.send('send-page-res', { method: 'slack', pageNumber, success: parsedRes.ok });
   });
-});
+};
