@@ -50,6 +50,7 @@ app.on('activate', () => {
 // Merge pages
 ipcMain.on('merge-pages', (event, { pageNumber, sentDirectory }) => {
   const files = fs.readdirSync(sentDirectory)
+    .filter((f) => f.endsWith('.pdf'))
     .sort((a, b) => {
       return a.split('.').slice(-2, -1)[0] - b.split('.').slice(-2, -1)[0];
     })
