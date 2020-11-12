@@ -3,6 +3,15 @@ const { dialog } = remote;
 
 window.pager = { sentDirectory: '' };
 
+ipcRenderer.on('merge-pages-res', (event, { success }) => {
+  alert(`${success ? 'SUCCESS' : 'FAIL'}: Merge pages`);
+});
+
+ipcRenderer.on('send-page-res', (event, { method, pageNumber, success }) => {
+  alert(`${success ? 'SUCCESS' : 'FAIL'}: ${pageNumber} to ${method.toUpperCase()}`);
+  if (success) $('input#pageNumber').val('');
+});
+
 $(document).ready(() => {
   $('button#btn-date').on('click', (e) => {
     e.preventDefault();
@@ -14,18 +23,9 @@ $(document).ready(() => {
     });
   });
 
-  ipcRenderer.on('merge-pages-res', (event, { success }) => {
-    alert(`${success ? 'SUCCESS' : 'FAIL'}: Merge pages`);
-  });
-
   $('button#btn-merge').on('click', (e) => {
     e.preventDefault();
     ipcRenderer.send('merge-pages', { sentDirectory: window.pager.sentDirectory });
-  });
-
-  ipcRenderer.on('send-page-res', (event, { method, pageNumber, success }) => {
-    alert(`${success ? 'SUCCESS' : 'FAIL'}: ${pageNumber} to ${method.toUpperCase()}`);
-    if (success) $('input#pageNumber').val('');
   });
 
   $('button.btn-send').on('click', (e) => {
