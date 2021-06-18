@@ -9,7 +9,8 @@ Pager is built as an Electron app. The only external dependency is
 
 ### Configuration
 
-Create a `config.json` file with the following structure:
+Create a `config.json` file with the structure below. The
+`slack_settings.token` property should be set to your Slack app's Bot User OAuth Token.
 
 ```json
 {
